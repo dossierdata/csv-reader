@@ -1,0 +1,16 @@
+{
+    "name": "dossierdata/csv-reader",
+    "description": "Reader for csv files",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "VictorPreda",
+            "email": "victor@dossierdata.nl",
+            "name": "LucasVDH",
+            "email": "lucas@dossierdata.nl"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
