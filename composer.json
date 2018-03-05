@@ -1,16 +1,31 @@
 {
-    "name": "dossierdata/csv-reader",
-    "description": "Reader for csv files",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "VictorPreda",
-            "email": "victor@dossierdata.nl",
-            "name": "LucasVDH",
-            "email": "lucas@dossierdata.nl"
-        }
-    ],
-    "minimum-stability": "dev",
-    "require": {}
+  "name": "dossierdata/csv-reader",
+  "description": "Reader for csv files",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "VictorPreda",
+      "email": "victor@dossierdata.nl"
+    },
+    {
+      "name": "LucasVDH",
+      "email": "lucas@dossierdata.nl"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {},
+  "require-dev": {
+    "phpunit/phpunit": "~5.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Dossierdata\\CsvReader\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Dossierdata\\Tests\\": "tests"
+    }
+  }
 }

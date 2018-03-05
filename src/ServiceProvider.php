@@ -1,10 +1,10 @@
 <?php
 
-namespace DossierData\CsvReader;
+namespace Dossierdata\CsvReader;
 
 use Illuminate\Support\ServiceProvider;
 
-class CSVReaderServiceProvider extends ServiceProvider
+class ServiceProvider extends ServiceProvider
 {
     /**
      * Indicates if loading of the provider is deferred.
@@ -30,6 +30,11 @@ class CSVReaderServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->bind(\Dossierdata\CsvReader\Contracts\CSVReader::class,\Dossierdata\CsvReader\CSVReader::class);
+    }
+
+    public function provides()
+    {
+        return [\Dossierdata\CsvReader\Contracts\CSVReader::class];
     }
 }
