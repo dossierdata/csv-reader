@@ -15,6 +15,8 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     protected $sourceEncoding = 'UTF-8';
     protected $targetEncoding = 'UTF-8';
     protected $lowerCaseHeader = true;
+    // if strict is true then if the file is invalid csv then it fails even if it can be read.
+    protected $strict = false;
 
     /**
      * @var StreamInterface
@@ -39,10 +41,37 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     }
 
     /**
+     * @param $enclosure
+     * @throws Exception
+     */
+    public function setEnclosure($enclosure)
+    {
+        if($enclosure === null) {
+            throw new Exception("No string enclosure is provided!");
+        }
+
+        if($enclosure === ''){
+            $this->enclosure = '"';
+        }
+
+        $this->enclosure = $enclosure;
+    }
+
+    /**
      * @param $delimiter
+     * @throws Exception
      */
     public function setDelimiter($delimiter)
     {
+        if($delimiter === null){
+            throw new Exception("No delimiter is provided!");
+        }
+
+        if($delimiter === ""){
+            $this->delimiter = ',';
+            return;
+        }
+
         $this->delimiter = $delimiter;
     }
 
@@ -104,16 +133,19 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
 
         for($i=0; $i < $lineLength; $i++) {
             $currentChar = $trimmedLine[$i];
+
             if ($this->indexIsInsideString($i - 1, $trimmedLine, $lineLength)) {
                 $previousChar = $trimmedLine[$i - 1];
             } else {
                 $previousChar = null;
             }
+
             if ($this->indexIsInsideString($i + 1, $trimmedLine, $lineLength)) {
                 $nextChar = $trimmedLine[$i + 1];
             } else {
                 $nextChar = null;
             }
+
             // if current character is enclosure
             // and inside string
             // then the next character must be a delimiter
@@ -123,9 +155,10 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
                 && (
                     $nextChar === $this->delimiter
                     || ($i === $lineLength - 1 && (!isset($this->header) || count($row) == count($this->header)))
-                )) {
+                ) && $previousChar !== $escape) {
                 $inString = false;
             }
+
             // if current character is enclosure
             // and not inside string
             // the previous character must be a delimiter
@@ -139,11 +172,12 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
                 $inString = true;
             }
 
-            if($trimmedLine[$i] === $delimiter && $inString === false) {
+            if($currentChar === $delimiter && $inString === false) {
                 $col = substr($trimmedLine, $lastColIndex + 1, $i - $lastColIndex - 1);
                 $row[] = $this->parseColValue($col, $enclosure);
                 $lastColIndex = $i;
             }
+
         }
 
         $col = substr($trimmedLine, $lastColIndex + 1);
@@ -190,7 +224,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
             $lineCount++;
             $trimmedLine = trim($line);
             $lineLength = strlen($trimmedLine);
-            for($i=0; $i < strlen($trimmedLine); $i++) {
+            for($i=0; $i < $lineLength; $i++) {
                 $currentChar = $trimmedLine[$i];
                 if ($this->indexIsInsideString($i - 1, $trimmedLine)) {
                     $previousChar = $trimmedLine[$i - 1];
@@ -352,7 +386,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
 
         foreach ($line as $index => $value) {
             if (!isset($header[$index])) {
-                throw new Exception('Too many cols!');
+                throw new \App\Import\Exceptions\Exception('Too many cols!');
             }
             $colName = $this->lowerCaseHeader ? strtolower($header[$index]) : $header[$index];
             $row[$colName] = $this->parseValue($value);
@@ -369,7 +403,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
         if ($this->sourceEncoding !== $this->targetEncoding) {
             $value = iconv($this->sourceEncoding, $this->targetEncoding . "//TRANSLIT", $value);
         }
-        return trim($value);
+        return $value;
     }
 
     /**
@@ -400,5 +434,27 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
 //        $csvHeaderMapping = new CSVHeaderMapping($this->getHeader(), $this->delimiter);
 //
 //        return new MappingStreamIterator($this->getStream(), $csvHeaderMapping);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getMappingIterator(MappingInterface $mapping): Iterator
+    {
+        return new MappingStreamIterator($this->getStream(), $mapping);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getAssociativeMappingIterator(MappingInterface $mapping): Iterator
+    {
+        return new MappingAssociativeArrayIterator($this->getAllRows(), $mapping);
+    }
+
+    private function dd($value)
+    {
+        var_dump($value);
+        die();
     }
 }

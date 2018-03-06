@@ -7,6 +7,11 @@ interface CSVReader extends ReaderInterface
 {
 
     /**
+     * @param $enclosure
+     */
+    public function setEnclosure($enclosure);
+
+    /**
      * @param $delimiter
      */
     public function setDelimiter($delimiter);
