@@ -100,18 +100,25 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     }
 
     /**
+     * @param array|null $header
      * @return array|false
      * @throws Exception
      */
-    protected function readLine()
+    protected function readLine(array $header = null)
     {
-        $string = $this->getLine($this->handle, count($this->header));
-
-        if ($string === false) {
-            return $string;
+        $header = $this->getHeader();
+        if (isset($header)) {
+            $columnCount = count($header);
+        } else {
+            $columnCount = null;
         }
-
-        return $this->parseCSVString($string, $this->delimiter, $this->enclosure, $this->escape);
+        return $this->getLine($this->handle, $columnCount, $header);
+//
+//        if ($row === false) {
+//            return $row;
+//        }
+//
+//        return $row; //$this->parseCSVString($string, $this->delimiter, $this->enclosure, $this->escape);
     }
 
     /**
@@ -175,6 +182,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
             if($currentChar === $delimiter && $inString === false) {
                 $col = substr($trimmedLine, $lastColIndex + 1, $i - $lastColIndex - 1);
                 $row[] = $this->parseColValue($col, $enclosure);
+//                var_dump($row);
                 $lastColIndex = $i;
             }
 
@@ -182,6 +190,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
 
         $col = substr($trimmedLine, $lastColIndex + 1);
         $row[] = $this->parseColValue($col, $enclosure);
+
 
         return $row;
     }
@@ -213,12 +222,16 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
         return $value;
     }
 
-    private function getLine($handle, $colCount) {
+//    private function getLine($handle, $colCount = null, array $header = null) {
+    private function getLine($handle,$colCount) {
         $prevLine = '';
 
         $inString = false;
-        $col = 1;
+        $col = 0;
         $lineCount = 0;
+
+        $testVar = "";
+        $row = [];
 
         while (($line = fgets($handle)) !== false) {
             $lineCount++;
@@ -226,6 +239,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
             $lineLength = strlen($trimmedLine);
             for($i=0; $i < $lineLength; $i++) {
                 $currentChar = $trimmedLine[$i];
+                $testVar = $testVar.$currentChar;
                 if ($this->indexIsInsideString($i - 1, $trimmedLine)) {
                     $previousChar = $trimmedLine[$i - 1];
                 } else {
@@ -236,6 +250,12 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
                 } else {
                     $nextChar = null;
                 }
+//                if (strlen($prevLine)> 0 && $i > 0) {
+//                    $this->dd((
+//                        $nextChar === $this->delimiter
+//                        || ($i === $lineLength - 1 && $col == $colCount -1)
+//                    ));
+//                }
                 // if current character is enclosure
                 // and inside string
                 // then the next character must be a delimiter
@@ -244,8 +264,9 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
                     && $inString === true
                     && (
                         $nextChar === $this->delimiter
-                        || ($i === $lineLength - 1 && $col == $colCount)
-                    )) {
+                        || ($i === $lineLength - 1 && $col == $colCount - 1)
+                    )
+                    && $previousChar !== $this->escape) {
                     $inString = false;
                 }
                 // if current character is enclosure
@@ -261,13 +282,36 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
                     $inString = true;
                 }
 
-                if($trimmedLine[$i] === $this->delimiter && $inString === false) {
+                if ($inString === false && $i === $lineLength - 1 && $col == $colCount - 1) {
                     $col++;
                 }
+
+                if($inString === false && $trimmedLine[$i] === $this->delimiter) {
+                    $col++;
+                    $testVar = substr($testVar,0,strlen($testVar)-1);
+                    $testVar = $this->parseColValue($testVar,$this->enclosure);
+                    $row[] = $testVar;
+                    $testVar = "";
+                }
+
+                if($i == $lineLength-1 && $inString === true){
+                    $testVar = $testVar."\n";
+                }
+
             }
 
+            $testVar = $this->parseColValue($testVar,$this->enclosure);
+
+            if(
+                $trimmedLine[$i] === $this->delimiter
+                || ($i === $lineLength && $col == $colCount)
+            ) {
+                $row[] = $testVar;
+            }
+
+
             if($col == $colCount && !$inString) {
-                return $prevLine . $line;
+                return $row;
             }
             elseif($col > $colCount) {
                 throw new Exception('Er zit een fout in het bestand op regel '.$lineCount.' cols('.$col.')');
@@ -380,7 +424,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
 
         $row = [];
 
-        if (!is_array($line = $this->readLine())) {
+        if (!is_array($line = $this->readLine($header))) {
             return false;
         }
 
@@ -452,9 +496,16 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
         return new MappingAssociativeArrayIterator($this->getAllRows(), $mapping);
     }
 
-    private function dd($value)
+    private function dd(...$values)
     {
-        var_dump($value);
+        $this->dump(...$values);
         die();
+    }
+
+    private function dump(...$values)
+    {
+        foreach ($values as $value) {
+            var_dump($value);
+        }
     }
 }
