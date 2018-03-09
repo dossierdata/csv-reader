@@ -31,32 +31,32 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
      *
      * @return array
      */
-    public function readSimpleCSVProvider()
-    {
-        return [
-            [
-                'tests/files/test1.csv',
-                '',
-                '',
-                [
-                    'field1' => 'vgeruyi',
-                    'field2' => '456',
-                    'field3' => 'tyvreu24658',
-
-                ],
-            ],
-            [
-                'tests/files/test2.csv',
-                ';',
-                '|',
-                [
-                    'field1' => 'vgeruyi',
-                    'field2' => '456',
-                    'field3' => 'tyvreu24658',
-                ]
-            ]
-        ];
-    }
+//    public function readSimpleCSVProvider()
+//    {
+//        return [
+//            [
+//                'tests/files/test1.csv',
+//                '',
+//                '',
+//                [
+//                    'field1' => 'vgeruyi',
+//                    'field2' => '456',
+//                    'field3' => 'tyvreu24658',
+//
+//                ],
+//            ],
+//            [
+//                'tests/files/test2.csv',
+//                ';',
+//                '|',
+//                [
+//                    'field1' => 'vgeruyi',
+//                    'field2' => '456',
+//                    'field3' => 'tyvreu24658',
+//                ]
+//            ]
+//        ];
+//    }
 
     /**
      * Data provider for testDecomposeAddress
@@ -65,56 +65,56 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
      *
      * @return array
      */
-    public function differentCaseIndexesCSVProvider()
-    {
-        return [
-            [
-                'tests/files/test3.csv',
-                '',
-                '',
-                true,
-                [
-                    'field1' => 'test',
-                    'field2' => 'test',
-                    'field3' => 'test',
-
-                ],
-            ],
-            [
-                'tests/files/test3.csv',
-                '',
-                '',
-                false,
-                [
-                    'Field1' => 'test',
-                    'Field2' => 'test',
-                    'Field3' => 'test',
-                ]
-            ],
-            [
-                'tests/files/test4.csv',
-                '',
-                '',
-                true,
-                [
-                    'field1' => 'test',
-                    'field2' => 'test',
-                    'field3' => 'test',
-                ]
-            ],
-            [
-                'tests/files/test4.csv',
-                '',
-                '',
-                false,
-                [
-                    'FIeld1' => 'test',
-                    'FiEld2' => 'test',
-                    'FielD3' => 'test',
-                ]
-            ]
-        ];
-    }
+//    public function differentCaseIndexesCSVProvider()
+//    {
+//        return [
+//            [
+//                'tests/files/test3.csv',
+//                '',
+//                '',
+//                true,
+//                [
+//                    'field1' => 'test',
+//                    'field2' => 'test',
+//                    'field3' => 'test',
+//
+//                ],
+//            ],
+//            [
+//                'tests/files/test3.csv',
+//                '',
+//                '',
+//                false,
+//                [
+//                    'Field1' => 'test',
+//                    'Field2' => 'test',
+//                    'Field3' => 'test',
+//                ]
+//            ],
+//            [
+//                'tests/files/test4.csv',
+//                '',
+//                '',
+//                true,
+//                [
+//                    'field1' => 'test',
+//                    'field2' => 'test',
+//                    'field3' => 'test',
+//                ]
+//            ],
+//            [
+//                'tests/files/test4.csv',
+//                '',
+//                '',
+//                false,
+//                [
+//                    'FIeld1' => 'test',
+//                    'FiEld2' => 'test',
+//                    'FielD3' => 'test',
+//                ]
+//            ]
+//        ];
+//    }
 
     /**
      * Test that the CSVReader can handle reading a simple row with only strings and numbers no enclosures.
@@ -125,30 +125,29 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
      * @return void
      *
      * @throws Exception
-     * @throws \App\Import\Exceptions\Exception
      * @dataProvider readSimpleCSVProvider
      */
-    public function testSimpleCSVFile($filename, $delimiter, $enclosure, $expected)
-    {
-        $reader = $this->getCSVReader();
-        $reader->setPath($filename);
-        $reader->setDelimiter($delimiter);
-        $reader->setEnclosure($enclosure);
-
-
-        try {
-            $rows = $reader->getAllRows();
-        } catch (Exception $e) {
-            $rows = false;
-        }
-
-        $this->assertInternalType('array', $rows);
-        $this->assertCount(1, $rows);
-        foreach ($rows as $row) {
-            $this->assertEquals($row, $expected);
-        }
-
-    }
+//    public function testSimpleCSVFile($filename, $delimiter, $enclosure, $expected)
+//    {
+//        $reader = $this->getCSVReader();
+//        $reader->setPath($filename);
+//        $reader->setDelimiter($delimiter);
+//        $reader->setEnclosure($enclosure);
+//
+//
+//        try {
+//            $rows = $reader->getAllRows();
+//        } catch (Exception $e) {
+//            $rows = false;
+//        }
+//
+//        $this->assertInternalType('array', $rows);
+//        $this->assertCount(1, $rows);
+//        foreach ($rows as $row) {
+//            $this->assertEquals($row, $expected);
+//        }
+//
+//    }
 //
 //    /**
 //     * Test that the CSVReader can handle both lower case and upper case indexes.
@@ -158,7 +157,6 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
 //     * @param $lowerCaseHeader
 //     * @param $expected
 //     * @throws Exception
-//     * @throws \App\Import\Exceptions\Exception
 //     * @dataProvider differentCaseIndexesCSVProvider
 //     */
 //    public function testIndexReading($filename, $delimiter, $enclosure, $lowerCaseHeader, $expected)
@@ -181,13 +179,12 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
 //            $this->assertEquals($row, $expected);
 //        }
 //    }
-//
-//    /**
-//     * Test that the CSVReader can handle reading a row with multiple lines
-//     *
-//     * @return void
-//     * @throws \App\Import\Exceptions\Exception
-//     */
+
+    /**
+     * Test that the CSVReader can handle reading a row with multiple lines
+     *
+     * @return void
+     */
 //    public function testMultiLineRead()
 //    {
 //        $reader = $this->getCSVReader();
@@ -201,6 +198,7 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
 //
 //        try {
 //            $rows = $reader->getAllRows();
+////            var_dump($rows);
 //        } catch (Exception $e) {
 //            $rows = false;
 //        }
@@ -214,13 +212,12 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
 //            $this->assertEquals($row,$expected);
 //        }
 //    }
-//
-//    /**
-//     * Test that the CSVReader can handle reading a row with multiple lines and unescaped string enclosures
-//     *
-//     * @return void
-//     * @throws \App\Import\Exceptions\Exception
-//     */
+
+    /**
+     * Test that the CSVReader can handle reading a row with multiple lines and unescaped string enclosures
+     *
+     * @return void
+     */
 //    public function testMultilineUnescapedStringEnclosure()
 //    {
 //        $reader = $this->getCSVReader();
@@ -228,8 +225,9 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
 //        $expected = [
 //            'field1' => 'test1',
 //            'field2' => 'test"2',
-//            'field3' => "\n\"",
+//            'field3' => "\n".'"',
 //        ];
+//
 //
 //        try {
 //            $rows = $reader->getAllRows();
@@ -243,16 +241,15 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
 //        foreach ($rows as $row) {
 //            $this->assertInternalType('array', $row);
 //            $this->assertCount(3, $row);
-//            $this->assertEquals($row, $expected);
+//            $this->assertEquals($expected,$row);
 //        }
 //    }
 
-    /**
-     * Test that the CSVReader can handle a string enclosed column before an empty last column
-     *
-     * @return void
-     * @throws \App\Import\Exceptions\Exception
-     */
+//    /**
+//     * Test that the CSVReader can handle a string enclosed column before an empty last column
+//     *
+//     * @return void
+//     */
     public function testStringColBeforeEmptyLastCol()
     {
         $reader = $this->getCSVReader();
@@ -270,6 +267,8 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
             $rows = false;
         }
 
+        dd($rows);
+
         $this->assertInternalType('array', $rows);
         $this->assertCount(1, $rows);
 
@@ -279,33 +278,48 @@ class CSVReaderTest extends PHPUnit_Framework_TestCase
             $this->assertEquals($row,$expected);
         }
     }
+//
+//    /**
+//     * Test that the CSVReader can ISO encoding and can transform it in UTF-8
+//     *
+//     */
+//    public function testEncoding()
+//    {
+//
+//        $reader = $this->getCSVReader();
+//        $reader->setSourceEncoding('ISO-8859-1');
+//        $reader->setPath('tests/files/test8.csv');
+//
+//        try {
+//            $rows = $reader->getAllRows();
+//        } catch (Exception $e) {
+//            $rows = false;
+//        }
+//
+//        $this->assertInternalType('array', $rows);
+//        $this->assertCount(1, $rows);
+//
+//        $row = array_shift($rows);
+//
+//        $this->assertInternalType('array', $row);
+//        $this->assertCount(4, $row);
+//        $this->assertArrayHasKey('field4', $row);
+//        $this->assertEquals('André', $row['field4']);
+//
+//    }
+}
+function dd(...$args)
+{
+    dump(...$args);
+    die();
+}
+function dump(...$args)
+{
 
-    /**
-     * Test that the CSVReader can ISO encoding and can transform it in UTF-8
-     *
-     */
-    public function testEncoding()
-    {
-
-        $reader = $this->getCSVReader();
-        $reader->setSourceEncoding('ISO-8859-1');
-        $reader->setPath('tests/files/test8.csv');
-
-        try {
-            $rows = $reader->getAllRows();
-        } catch (Exception $e) {
-            $rows = false;
-        }
-
-        $this->assertInternalType('array', $rows);
-        $this->assertCount(1, $rows);
-
-        $row = array_shift($rows);
-
-        $this->assertInternalType('array', $row);
-        $this->assertCount(4, $row);
-        $this->assertArrayHasKey('field4', $row);
-        $this->assertEquals('André', $row['field4']);
-
+    foreach ($args as $arg) {
+        echo PHP_EOL;
+        echo (gettype($arg). ' ');
+        print_r($arg);
+        echo PHP_EOL;
     }
 }

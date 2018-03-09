@@ -33,11 +33,6 @@ interface CSVReader extends ReaderInterface
 
     /**
      * @return array
-     */
-    public function getHeader();
-
-    /**
-     * @return array
      * @throws Exception
      */
     public function getAllRows();
