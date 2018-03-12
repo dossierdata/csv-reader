@@ -20,6 +20,10 @@ interface CSVReader extends ReaderInterface
      * @param bool $lowerCaseHeader
      */
     public function setLowerCaseHeader($lowerCaseHeader);
+    /**
+     * @param bool $hasHeader
+     */
+    public function setHasHeader(bool $hasHeader);
 
     /**
      * @param string $sourceEncoding

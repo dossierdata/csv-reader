@@ -16,6 +16,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     protected $lowerCaseHeader = true;
     // if strict is true then if the file is invalid csv then it fails even if it can be read.
     protected $strict = false;
+    // no new lines no unescaped string enclosures
     // set if the file has a header or not
     protected $hasHeader = true;
 
@@ -85,6 +86,14 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     }
 
     /**
+     * @param bool $hasHeader
+     */
+    public function setHasHeader(bool $hasHeader)
+    {
+        $this->hasHeader = $hasHeader;
+    }
+
+    /**
      * @param string $sourceEncoding
      */
     public function setSourceEncoding($sourceEncoding)
@@ -137,21 +146,26 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      */
     public function getRow($header)
     {
-        $row = [];
 
         if (!is_array($line = $this->readLine($header))) {
             return false;
         }
 
-        foreach ($line as $index => $value) {
-            if (!isset($header[$index])) {
-                throw new Exception('Too many cols!');
+        if($this->hasHeader){
+            $row = [];
+            foreach ($line as $index => $value) {
+                if (!isset($header[$index])) {
+                    throw new Exception('Too many cols!');
+                }
+                $colName = $this->lowerCaseHeader ? strtolower($header[$index]) : $header[$index];
+                $row[$colName] = $this->parseValue($value);
             }
-            $colName = $this->lowerCaseHeader ? strtolower($header[$index]) : $header[$index];
-            $row[$colName] = $this->parseValue($value);
+
+            return $row;
         }
 
-        return $row;
+        return $line;
+
     }
 
     /**
@@ -161,7 +175,11 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     public function getAllRows()
     {
         $rows = [];
-        $header = $this->getLine($this->handle,null);
+        $header = null;
+        if($this->hasHeader){
+
+            $header = $this->getLine(null);
+        }
 
         //maybe do while ?
         while (!feof($this->handle)) {
@@ -193,13 +211,12 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      */
     protected function readLine(array $header = null)
     {
-//        var_dump($header);
         if ($header != null) {
             $columnCount = count($header);
         } else {
             $columnCount = null;
         }
-        return $this->getLine($this->handle, $columnCount);
+        return $this->getLine($columnCount);
     }
 
     /**
@@ -259,23 +276,30 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     private function parseColValue($value, $enclosure)
     {
         $colLength = strlen($value);
-
         // Check if first and last character are the string enclosure character
         if (isset($value[0]) && $value[0] === $enclosure && isset($value[$colLength - 1]) && $value[$colLength - 1] === $enclosure) {
             $value = substr($value, 1, $colLength - (strlen($enclosure) * 2));
         }
 
 
+
         return $value;
     }
 
     /**
-     * @param $handle
+     * @return bool
+     */
+    protected function isEndOfFile()
+    {
+        return feof($this->handle);
+    }
+
+    /**
      * @param null $colCount
      * @return array|bool
      * @throws Exception
      */
-    private function getLine($handle, $colCount = null)
+    private function getLine($colCount = null)
     {
         $prevLine = '';
 
@@ -286,31 +310,31 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
         $currentFieldValue = "";
         $row = [];
 
-//        $columnName = $header[count($row)];
-
-        while (($line = fgets($handle)) !== false) {
+        while (($line = fgets($this->handle)) !== false) {
             $lineCount++;
 
-            $this->parseFieldsFromLine($line, $col, $colCount, $inString, $currentFieldValue, $row, $currentCharIndex);
+            $this->parseFieldsFromLine($line, $col, $inString, $currentFieldValue, $row, $currentCharIndex);
 
-
-            $this->appendLastFieldIfEndOfRow($currentFieldValue, $currentCharIndex, trim($line), $col, $colCount, $row);
+            if ($col < $colCount) {
+                $this->appendLastFieldIfEndOfRow($currentFieldValue, $currentCharIndex, trim($line), $col, $colCount,
+                    $row);
+            }
 
             if($colCount == null){
                 $colCount = $col;
             }
 
-//            var_dump('$col == $colCount && !$inString:',$col == $colCount && !$inString);
-            if ($col == $colCount && !$inString) {
+            if($col == $colCount && !$inString){
                 return $row;
-            } elseif ($col > $colCount) {
-                throw new Exception('Er zit een fout in het bestand op regel ' . $lineCount . ' cols(' . $col . ')');
-            } elseif ($col + 1 == $colCount && !feof($handle)) {
+            }elseif($this->isEndOfFile() && $col+1 == $colCount && trim($line)[strlen(trim($line))-1] === $this->delimiter){
                 $row[] = "";
                 return $row;
-            } else {
+            }elseif ($col > $colCount) {
+                throw new Exception('Er zit een fout in het bestand op regel ' . $lineCount . ' cols(' . $col . ')');
+            }else {
                 $prevLine .= $line;
             }
+
         }
         return false;
     }
@@ -318,7 +342,6 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     /**
      * @param $line
      * @param $col
-     * @param $colCount
      * @param $inString
      * @param $currentFieldValue
      * @param $row
@@ -327,7 +350,6 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     private function parseFieldsFromLine(
         $line,
         &$col,
-        $colCount,
         &$inString,
         &$currentFieldValue,
         &$row,
@@ -341,13 +363,13 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
             $currentFieldValue = $currentFieldValue . $currentChar;
 
             list($previousChar, $nextChar) = $this->getPreviousAndNextCharFromStringByIndex($currentCharIndex,
-                $trimmedLine);
-            $inString = $this->isInsideStringField($currentChar, $previousChar, $nextChar,
-                $lineLength, $col, $colCount, $currentCharIndex, $inString);
-            $this->appendFieldToRowIfFieldEnds($inString, $lineLength, $col, $colCount,
+                $line);
+
+            $inString = $this->isInsideStringField($currentChar, $previousChar, $nextChar, $currentCharIndex, $inString);
+
+            $this->appendFieldToRowIfFieldEnds($inString, $lineLength, $col,
                 $currentFieldValue, $currentChar, $currentCharIndex, $row);
         }
-        $currentCharIndex--;
     }
 
     /**
@@ -360,17 +382,16 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      */
     private function appendLastFieldIfEndOfRow(&$currentFieldValue, $currentCharIndex, $line, $col, $colCount, &$row)
     {
+
         $currentFieldValue = $this->parseColValue($currentFieldValue, $this->enclosure);
 
         if ($line[$currentCharIndex] === $this->delimiter) {
             $row[] = $currentFieldValue;
         }
-        elseif($currentCharIndex + 1 === strlen(trim($line))){
-            if($colCount != null){
-                if($col == $colCount){
-                    $row[] = $currentFieldValue;
-                }
-            }else{
+        elseif($currentCharIndex === strlen($line)){
+            if($colCount != null && $col == $colCount){
+                $row[] = $currentFieldValue;
+            } elseif($colCount == null) {
                 $row[] = $currentFieldValue;
             }
         }
@@ -378,18 +399,18 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
 
     /**
      * @param $currentChar
-     * @param $trimmedLine
+     * @param $line
      * @return array
      */
-    private function getPreviousAndNextCharFromStringByIndex($currentChar, $trimmedLine)
+    private function getPreviousAndNextCharFromStringByIndex($currentChar, $line)
     {
-        if ($this->indexIsInsideString($currentChar - 1, $trimmedLine)) {
-            $previousChar = $trimmedLine[$currentChar - 1];
+        if ($this->indexIsInsideString($currentChar - 1, $line)) {
+            $previousChar = $line[$currentChar - 1];
         } else {
             $previousChar = null;
         }
-        if ($this->indexIsInsideString($currentChar + 1, $trimmedLine)) {
-            $nextChar = $trimmedLine[$currentChar + 1];
+        if ($this->indexIsInsideString($currentChar + 1, $line)) {
+            $nextChar = $line[$currentChar + 1];
         } else {
             $nextChar = null;
         }
@@ -404,9 +425,6 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      * @param $currentChar
      * @param $previousChar
      * @param $nextChar
-     * @param $lineLength
-     * @param $col
-     * @param $colCount
      * @param $currentLineChar
      * @param $inString
      * @return bool
@@ -415,9 +433,6 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
         $currentChar,
         $previousChar,
         $nextChar,
-        $lineLength,
-        $col,
-        $colCount,
         $currentLineChar,
         $inString
     ) {
@@ -425,21 +440,14 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
         // and inside string
         // then the next character must be a delimiter
         // or it must be the end of the line and it must be the last column
-
         if ($currentChar === $this->enclosure
             && $inString === true
-            && $previousChar !== $this->escape) {
-            if($nextChar === $this->delimiter){
+            && $previousChar !== $this->escape
+            && ($nextChar === $this->delimiter
+                || $nextChar === "\n"
+                || $this->isEndOfFile()
+            )) {
                 return false;
-            }
-            elseif($colCount !=null){
-                if($currentLineChar === $lineLength - 1 && $col == $colCount - 1){
-
-                    return false;
-                }
-            } else {
-                return $inString;
-            }
         }
         // if current character is enclosure
         // and not inside string
@@ -461,55 +469,37 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      * @param $inString
      * @param $lineLength
      * @param $col
-     * @param $colCount
      * @param $possibleField
      * @param $currentChar
      * @param $currentCharIndex
      * @param $row
+     * @throws Exception
      */
     private function appendFieldToRowIfFieldEnds(
         $inString,
         $lineLength,
         &$col,
-        $colCount,
         &$possibleField,
         $currentChar,
         $currentCharIndex,
         &$row
     ) {
-        if ($inString === false && $currentChar === $this->delimiter) {
-//            if($colCount != null){
-//                if ($currentCharIndex === $lineLength - 1 && $col == $colCount - 1) {
-//                    $col++;
-//                }
-//
-//            }else{
-//                $col++;
-//            }
-//            if () {
-                $col++;
+        if ($inString === false && ($currentChar === $this->delimiter || $currentCharIndex == $lineLength-1)) {
+            if($currentChar === $this->delimiter){
                 $possibleField = substr($possibleField, 0, strlen($possibleField) - 1);
-                $possibleField = $this->parseColValue($possibleField, $this->enclosure);
-                $row[] = $possibleField;
-                $possibleField = "";
-//            }
-        } elseif ($currentCharIndex == $lineLength - 1) {
+            }
+            $col++;
+            $possibleField = $this->parseColValue($possibleField, $this->enclosure);
+            $row[] = $possibleField;
+            $possibleField = "";
+        } elseif ($currentCharIndex == $lineLength - 1 && $inString === true){
+            if($this->strict){
+                throw new Exception("No new lines allowed in fields");
+            }
             $possibleField = $possibleField . "\n";
         }
     }
 
-//    private function dd(...$values)
-//    {
-//        $this->dump(...$values);
-//        die();
-//    }
-//
-//    private function dump(...$values)
-//    {
-//        foreach ($values as $value) {
-//            var_dump($value);
-//        }
-//    }
 }
 
 function dd(...$args)
@@ -522,8 +512,7 @@ function dump(...$args)
 
     foreach ($args as $arg) {
         echo PHP_EOL;
-        echo (gettype($arg). ' ');
-        print_r($arg);
+        var_dump($arg);
         echo PHP_EOL;
     }
 }
