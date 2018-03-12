@@ -19,6 +19,8 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     // no new lines no unescaped string enclosures
     // set if the file has a header or not
     protected $hasHeader = true;
+    protected $defaultEmptyStrings = true;
+    protected $emptyStringDefault = null;
 
     /**
      * @var StreamInterface
@@ -83,6 +85,22 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
     public function setLowerCaseHeader($lowerCaseHeader)
     {
         $this->lowerCaseHeader = $lowerCaseHeader;
+    }
+
+    /**
+     * @param null $emptyStringDefault
+     */
+    public function setEmptyStringDefault($emptyStringDefault)
+    {
+        $this->emptyStringDefault = $emptyStringDefault;
+    }
+
+    /**
+     * @param bool $defaultEmptyStrings
+     */
+    public function setDefaultEmptyStrings(bool $defaultEmptyStrings)
+    {
+        $this->defaultEmptyStrings = $defaultEmptyStrings;
     }
 
     /**
@@ -245,12 +263,19 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      */
     protected function parseValue($value)
     {
+
         if ($value == "\x00") {
             return null;
         }
+
         if ($this->sourceEncoding !== $this->targetEncoding) {
             $value = iconv($this->sourceEncoding, $this->targetEncoding . "//TRANSLIT", $value);
         }
+
+        if($value == "" && $this->defaultEmptyStrings){
+            return $this->emptyStringDefault;
+        }
+
         return $value;
     }
 
@@ -346,6 +371,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      * @param $currentFieldValue
      * @param $row
      * @param $currentCharIndex
+     * @throws Exception
      */
     private function parseFieldsFromLine(
         $line,
@@ -428,6 +454,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
      * @param $currentLineChar
      * @param $inString
      * @return bool
+     * @throws Exception
      */
     private function isInsideStringField(
         $currentChar,
@@ -460,6 +487,15 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
                 || $currentLineChar === 0
             )) {
             return true;
+        }elseif($currentChar === $this->enclosure
+            && $inString === true
+            && $previousChar !== $this->escape
+            && $nextChar !== $this->delimiter
+            && $nextChar !== "\n"
+            && !$this->isEndOfFile()
+            && $this->strict
+            ){
+            throw new Exception("Unescaped string delimiter present!");
         }
 
         return $inString;
@@ -494,7 +530,7 @@ class CSVReader implements \Dossierdata\CsvReader\Contracts\CSVReader
             $possibleField = "";
         } elseif ($currentCharIndex == $lineLength - 1 && $inString === true){
             if($this->strict){
-                throw new Exception("No new lines allowed in fields");
+                throw new Exception("No new lines allowed in fields!");
             }
             $possibleField = $possibleField . "\n";
         }

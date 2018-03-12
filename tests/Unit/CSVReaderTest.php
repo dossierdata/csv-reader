@@ -320,3 +320,5 @@ function dump(...$args)
         echo PHP_EOL;
     }
 }
+
+//Add some test for the empty string case
